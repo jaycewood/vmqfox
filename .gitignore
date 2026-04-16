@@ -4,3 +4,97 @@
 *.log
 /runtime
 .env
+.env.local
+.env.production
+config.yaml
+config.local.yaml
+config.production.yaml
+
+# PHP / ThinkPHP runtime
+runtime/
+public/qr-code/
+
+# Go build outputs
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.prof
+*.pprof
+vmqfox-api
+vmqfox-api.exe
+coverage.html
+coverage.out
+coverage.txt
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Cache and temp
+.cache/
+tmp/
+temp/
+temporary/
+__debug_bin
+
+# Logs
+logs/
+log/
+
+# Local build dirs
+build/
+dist/
+out/
+.local/
+*.local
+
+# Database / dumps / backups
+*.db
+*.sqlite
+*.sqlite3
+*.sql.gz
+*.dump
+*.bak
+*.backup
+
+# Node / frontend tooling
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python temp files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS junk
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.lnk
+.AppleDouble
+.LSOverride
+
+# Certificates / secrets
+*.pem
+*.key
+*.crt
+*.p12
+jwt.secret
+
+# Misc local files
+dev-*
+local-*
+*.tar
+*.tar.gz
+*.zip
+*.rar

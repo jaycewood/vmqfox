@@ -161,7 +161,7 @@ class Monitor extends BaseController
                 $re = $this->getCurl($notifyUrl); // 发送GET请求
                 
                 // 如果通知失败，则更新订单状态为2
-                if ($re != "success") {
+                if (trim((string) $re) != "success") {
                     Db::name("pay_order")->where("id", $order['id'])->update(["state" => 2]);
                 }
             }
@@ -269,10 +269,10 @@ class Monitor extends BaseController
                     $notifyUrl = $notifyUrl."&".$p;
                 }
                 
-                $re = $this->postCurl($notifyUrl, []); // 发送GET请求
+                $re = $this->postCurl($notifyUrl, []);
                 
                 // 如果通知失败，则更新订单状态为2
-                if ($re != "success") {
+                if (trim((string) $re) != "success") {
                     Db::name("pay_order")->where("id", $order['id'])->update(["state" => 2]);
                 }
             }

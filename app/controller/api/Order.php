@@ -157,6 +157,8 @@ class Order extends BaseController
             return $this->error('创建订单失败');
         }
         
+        $frontendUrl = $this->getFrontendUrl();
+
         // 如果isHtml=1，直接输出HTML跳转页面
         if ($isHtml == 1) {
             // 设置Content-Type为text/html
@@ -199,7 +201,7 @@ class Order extends BaseController
     <div class="loading"></div>
     <div class="text">正在跳转到支付页面，请稍候...</div>
     <script>
-        window.location.href = "' . Config::get('app.frontend_url') . '/#/payment/' . $orderId . '";
+        window.location.href = "' . $frontendUrl . '/#/payment/' . $orderId . '";
     </script>
 </body>
 </html>';
@@ -215,7 +217,7 @@ class Order extends BaseController
             'reallyPrice' => $reallyPrice,
             'payUrl' => $payUrl,
             'isAuto' => $isAuto,
-            'redirectUrl' => Config::get('app.frontend_url') . '/#/payment/' . $orderId
+            'redirectUrl' => $frontendUrl . '/#/payment/' . $orderId
         ]);
     }
     
@@ -396,14 +398,20 @@ class Order extends BaseController
             // 根据订单状态返回不同指令
             switch ($order['state']) {
                 case 1: // 已支付
+                case 2: // 已支付，但异步通知失败
                     // 返回跳转地址，前端收到后应立即跳转
-                    error_log("订单已支付，返回跳转地址: {$order['return_url']}");
+                    if ($order['state'] == 2) {
+                        error_log("订单已支付，但异步通知失败，仍返回跳转地址: {$order['return_url']}");
+                    } else {
+                        error_log("订单已支付，返回跳转地址: {$order['return_url']}");
+                    }
                     return $this->success([
                         'redirectUrl' => $order['return_url'], 
                         'remainingSeconds' => 0,
                         'return_url' => $order['return_url'],
-                        'param' => $order['param']
-                    ], '支付成功');
+                        'param' => $order['param'],
+                        'state' => intval($order['state'])
+                    ], $order['state'] == 2 ? '支付成功，异步通知失败' : '支付成功');
                     
                 case -1: // 已关闭/过期
                     // 返回过期状态，前端收到后应显示过期信息
@@ -562,9 +570,29 @@ class Order extends BaseController
                 return '未支付';
             case 1:
                 return '已支付';
+            case 2:
+                return '已支付，通知失败';
             default:
                 return '未知状态';
         }
+    }
+
+    /**
+     * 获取前端地址。
+     * 优先使用显式配置；若配置为空或仍为本地开发地址，则回退到当前请求域名。
+     * @return string
+     */
+    private function getFrontendUrl()
+    {
+        $frontendUrl = rtrim((string) Config::get('app.frontend_url'), '/');
+        $parsedUrl = $frontendUrl ? parse_url($frontendUrl) : false;
+        $host = is_array($parsedUrl) ? ($parsedUrl['host'] ?? '') : '';
+
+        if ($frontendUrl !== '' && !in_array($host, ['', 'localhost', '127.0.0.1'], true)) {
+            return $frontendUrl;
+        }
+
+        return rtrim(Request::domain(true), '/');
     }
     
     /**

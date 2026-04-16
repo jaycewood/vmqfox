@@ -10,7 +10,7 @@ ENV_FILE=".env"
 cat > "$ENV_FILE" <<EOF
 APP_DEBUG = ${APP_DEBUG:-true}
 APP_TRACE = ${APP_TRACE:-false}
-APP_FRONTEND_URL = ${APP_FRONTEND_URL:-http://localhost:3006}
+APP_FRONTEND_URL = ${APP_FRONTEND_URL:-}
 
 [DATABASE]
 TYPE = ${DB_TYPE:-mysql}
@@ -47,4 +47,3 @@ echo "Starting vmqfox-backend with command: $@"
 
 # Execute passed command (default defined in CMD)
 exec "$@"
-

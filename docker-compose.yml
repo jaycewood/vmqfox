@@ -17,7 +17,8 @@ services:
 
   # V免签Fox后端服务
   backend:
-    image: hulisang/vmqfox-backend:latest
+    build: .
+    image: vmqfox-backend:local
     container_name: vmqfox-backend
     ports:
       - "8000:8000"
@@ -26,7 +27,7 @@ services:
       - TZ=Asia/Shanghai
       - APP_DEBUG=true
       - APP_TRACE=false
-      - APP_FRONTEND_URL=http://localhost:3006
+      - APP_FRONTEND_URL=
       - DB_TYPE=mysql
       - DB_HOSTNAME=mysql
       - DB_DATABASE=vmq

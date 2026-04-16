@@ -29,26 +29,11 @@ class Index
 
     public function index()
     {
-        return '<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>存在搭建问题</title>
-    <meta name="renderer" content="webkit">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="format-detection" content="telephone=no">
-</head>
-<body class="body">
-<div style="padding: 15px;color: red;">
-    <h1 style="text-align: center">检测到默认文档未设定成index.html</h1><br><br>
-    <h1 style="text-align: center">请在宝塔面板-网站-设置-默认文档->将index.html放到第一行并保存！</h1><br><br>
-</div>
-</body>
-</html>
-';
+        return json($this->getReturn(1, "VMQ API 服务正常运行", [
+            'version' => '2.0',
+            'service' => 'vmqfox-backend',
+            'status' => 'running'
+        ]));
     }
 
     // 关闭超时订单
@@ -736,25 +721,40 @@ class Index
      */
     private function orderNotify($order)
     {
-        // 准备通知数据
-        $data = [
-            'payId' => $order['pay_id'],
-            'param' => $order['param'],
-            'type' => $order['type'],
-            'price' => $order['price'],
-            'reallyPrice' => $order['really_price']
-        ];
-        
         // 获取密钥
         $key = Db::name("setting")->where("vkey", "key")->find();
-        
-        // 计算签名
-        $sign = md5($data['payId'] . $data['param'] . $data['type'] . $data['price'] . $data['reallyPrice'] . $key['vvalue']);
-        $data['sign'] = $sign;
-        
-        // 发送通知
-        $notifyResult = $this->getCurl($order['notify_url'], http_build_query($data));
-        
+        $systemKey = $key ? $key['vvalue'] : '';
+
+        // 新版优先：POST + payId=order_id + QueryString参与签名
+        $paramsNew = [
+            'payId' => $order['order_id'],
+            'param' => $order['param'],
+            'type' => $order['type'],
+            'price' => (string)$order['price'],
+            'reallyPrice' => (string)$order['really_price']
+        ];
+        $signNew = md5("payId=".$paramsNew['payId']."&param=".$paramsNew['param']."&type=".$paramsNew['type']."&price=".$paramsNew['price']."&reallyPrice=".$paramsNew['reallyPrice']."&key=".$systemKey);
+        $paramsNew['sign'] = $signNew;
+
+        // 发送通知（POST）
+        $notifyResult = $this->getCurl($order['notify_url'], http_build_query($paramsNew));
+        error_log('[Notify][index.orderNotify][new] order_id=' . $order['order_id'] . ' pay_id=' . $order['pay_id'] . ' url=' . $order['notify_url'] . ' resp=' . trim((string)$notifyResult));
+
+        if (trim((string)$notifyResult) !== 'success') {
+            // 失败回退旧版：GET + payId=pay_id + 旧版拼接签名
+            $legacyPayId = $order['pay_id'];
+            $p = "payId=".$legacyPayId.
+                "&param=".$order['param'].
+                "&type=".$order['type'].
+                "&price=".$order['price'].
+                "&reallyPrice=".$order['really_price'];
+            $legacySign = md5($legacyPayId.$order['param'].$order['type'].$order['price'].$order['really_price'].$systemKey);
+            $p .= "&sign=".$legacySign;
+            $legacyUrl = (strpos($order['notify_url'], "?") === false) ? ($order['notify_url']."?".$p) : ($order['notify_url']."&".$p);
+            $notifyResult = $this->getCurl($legacyUrl);
+            error_log('[Notify][index.orderNotify][legacy] order_id=' . $order['order_id'] . ' pay_id=' . $order['pay_id'] . ' url=' . $legacyUrl . ' resp=' . trim((string)$notifyResult));
+        }
+
         return $notifyResult;
     }
 } 
